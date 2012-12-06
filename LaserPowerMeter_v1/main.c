@@ -50,9 +50,8 @@ int printHeader = 1; // flag to print header next post or not
 char toprint[BUFFER_SIZE];
 command_struct deriv_command = {.arg0 = "deriv"};
 int AD_channel; // index to read from a different A/D channel each loop
-
 int quarter_clock = 0; // 250 usec timer
-
+char* states[] = {"steady", "rising", "falling"};
 
 // initialize structure holding LED pin and state info
 LED_struct LED = {&LED_LATCH, &LED_OFF, &LED_OFF};
@@ -137,9 +136,9 @@ int main() {
   // for posting data to serial port
   serial_begin(BAUDRATE); // initiatize serial connection at 115000 baud
   char * headings[] = {"Time", "X-Step", "Y-Step", "East_filt", "North_filt", "West_filt",
-    "South_filt", "Total Power", "Temp","East", "North", "West", "South", "Temp"};
+    "South_filt", "Total Power", "Temp","East", "North", "West", "South", "Temp", "Temp_slope"};
   char* units[] = {"seconds", "in", "in","cts","cts", "cts", "cts",
-  "Watts", "Deg C","cts", "cts", "cts", "cts", "cts"};
+  "Watts", "Deg C","cts", "cts", "cts", "cts", "cts", "Deg/sec"};
 
   inch_to_mm_scale = (long int)(0.254*powf(2,13));
   mm_to_inch_scale = (long int)((1.0/0.254)*powf(2,13))+1;
@@ -238,10 +237,15 @@ int main() {
 
       if (deriv_clock <= run_time){
         long int deriv;
-        for(i = 0; i < 4; i++){
+        for(i = 0; i < 5; i++){
           deriv = differentiate(&(quadrant[i]));
-
         }
+        if(quadrant[TEMP_CHANNEL].deriv_changed){
+          sprintf(toprint, "<m>t: %lu %s state detected for Temp: %ld deg/sec</m>\n",
+                  run_time, states[quadrant[TEMP_CHANNEL].deriv_state], quadrant[TEMP_CHANNEL].deriv);
+          serial_bufWrite(toprint, -1);
+        }
+
         //command_ptr = &deriv_command;
         //doCommand(command_ptr);
         deriv_clock = run_time + deriv_period;
@@ -310,6 +314,7 @@ int main() {
         snprintf(data.dataRow[11], 9, "%ld", quadrant[THERM3_CHANNEL].unfiltered_value);
         snprintf(data.dataRow[12], 9, "%ld", quadrant[THERM4_CHANNEL].unfiltered_value);
         snprintf(data.dataRow[13], 9, "%ld", quadrant[TEMP_CHANNEL].unfiltered_value);
+        snprintf(data.dataRow[14], 9, "%ld", quadrant[TEMP_CHANNEL].deriv);
 
         postRowData(&data);
         post_clock = run_time + post_period; // reset posting clock

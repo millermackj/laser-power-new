@@ -24,7 +24,10 @@ Comments:  Support file for definitions and function prototypes
 #define RTD_0   873L       // RTD raw counts at 0 degrees Celsius
 
 
-#define DERIV_THRESHOLD 
+#define DERIV_THRESHOLD 3
+#define STEADY 0
+#define RISING 1
+#define FALLING 2
 
 // set the follow to zero if the device is uncalibrated
 #define QUADA_1KW  0        // quadrant A raw counts at 1kW centered
@@ -90,7 +93,7 @@ Comments:  Support file for definitions and function prototypes
 
 #define COLUMN_LABEL_SIZE 16 // max letters of each output column heading
 #define ROW_LENGTH 128       // number of letters in an entire row
-#define NUM_COLUMNS 14        // number of output columns
+#define NUM_COLUMNS 15        // number of output columns
 
 #define BUFFER_SIZE 512     // software serial data buffer size
 
@@ -191,6 +194,7 @@ typedef struct {
   double dbl_scale; // floating pont scaling factor
   long int cts_at_1kW; // raw counts readout at 1kW centered power
   int deriv_state; // derivative state: steady_cold, rising, steady_hot, falling
+  char deriv_changed;
 }gradient_data_struct;
 
 

@@ -419,6 +419,33 @@ long int differentiate(gradient_data_struct* data){
   }
 
   data->deriv = sum * (1000/AD_PERIOD)/(NUM_TAPS/2 * NUM_TAPS/2);
+
+  // check for change in deriv state
+  if (abs(data->deriv) < DERIV_THRESHOLD ){
+    if(data->deriv_state != STEADY){
+      data->deriv_changed = 1;
+      data->deriv_state = STEADY;
+    }
+    else
+      data->deriv_changed = 0;
+  }
+  else if(data->deriv > DERIV_THRESHOLD){
+    if(data->deriv_state != RISING){
+      data->deriv_changed = 1;
+      data->deriv_state = RISING;
+    }
+    else
+      data->deriv_changed = 0;
+  }
+  else if(data->deriv < -DERIV_THRESHOLD){
+    if(data->deriv_state != FALLING){
+      data->deriv_changed = 1;
+      data->deriv_state = FALLING;
+    }
+    else
+      data->deriv_changed = 0;
+  }
+
   return data->deriv;
 }
 
@@ -820,12 +847,13 @@ void doCommand(command_struct* command) {
         set_target_pos(&motorY, motorY.target_pos - (long int) (atoi(command->arg2)));
 //        motorY.target_pos -= atoi(command->arg1);
   } else if (!strncmp(command->arg0, "deriv", 2)) { // get derivatives of signals
-  sprintf(toPrint2, "<m>derivatives: time = %ld\na: %ld\nb: %ld\nc: %ld\nd: %ld</m>\n",
+  sprintf(toPrint2, "<m>derivatives: time = %ld\na: %ld\nb: %ld\nc: %ld\nd: %ld\ntemp: %ld</m>\n",
           run_time,
-          differentiate(&(quadrant[0])),
-          differentiate(&(quadrant[1])),
-          differentiate(&(quadrant[2])),
-          differentiate(&(quadrant[3])));
+          differentiate(&(quadrant[THERM1_CHANNEL])),
+          differentiate(&(quadrant[THERM2_CHANNEL])),
+          differentiate(&(quadrant[THERM3_CHANNEL])),
+          differentiate(&(quadrant[THERM4_CHANNEL])),
+          differentiate(&(quadrant[TEMP_CHANNEL])));
 
   serial_bufWrite(toPrint2, -1);
 
