@@ -76,8 +76,12 @@ void _ISRFASTER _T1Interrupt(void) {
   if (quarter_clock % 4 == 0){
      run_time++; // increment millisecond timer
      quarter_clock = 0;
+
   }
-  run_steppers(quarter_clock % 2); //
+  if(quarter_clock == 0)
+     run_steppers(1); //
+  else if(quarter_clock == 2)
+    run_steppers(0);
 
 //  if(quarter_clock % 2 == 0)
 //    run_steppers(quarter_clock / 2);
@@ -420,32 +424,55 @@ long int differentiate(gradient_data_struct* data){
 
   data->deriv = sum * (1000/AD_PERIOD)/(NUM_TAPS/2 * NUM_TAPS/2);
 
+  int last_state = data->deriv_state;
+
   // check for change in deriv state
   if (abs(data->deriv) < DERIV_THRESHOLD ){
+    data->deriv_debounce[STEADY]++;
+    data->deriv_debounce[RISING]--;
+    data->deriv_debounce[FALLING]--;
     if(data->deriv_state != STEADY){
-      data->deriv_changed = 1;
-      data->deriv_state = STEADY;
+      if(data->deriv_debounce[STEADY] > 6){
+        data->deriv_state = STEADY;
+        data->deriv_debounce[STEADY] = 0;
+      }
     }
-    else
-      data->deriv_changed = 0;
   }
   else if(data->deriv > DERIV_THRESHOLD){
+    data->deriv_debounce[STEADY]--;
+    data->deriv_debounce[RISING]++;
+    data->deriv_debounce[FALLING]--;
     if(data->deriv_state != RISING){
-      data->deriv_changed = 1;
-      data->deriv_state = RISING;
+      if(data->deriv_debounce[RISING] > 6){
+        data->deriv_state = RISING;
+        data->deriv_debounce[STEADY] = 0;
+        data->deriv_debounce[RISING] = 0;
+        data->deriv_debounce[FALLING] = 0;
+      }
     }
-    else
-      data->deriv_changed = 0;
   }
   else if(data->deriv < -DERIV_THRESHOLD){
-    if(data->deriv_state != FALLING){
-      data->deriv_changed = 1;
-      data->deriv_state = FALLING;
-    }
-    else
-      data->deriv_changed = 0;
-  }
+    data->deriv_debounce[STEADY]--;
+    data->deriv_debounce[RISING]--;
+    data->deriv_debounce[FALLING]++;
 
+    if(data->deriv_state != FALLING){
+      if(data->deriv_debounce[FALLING] > 6){
+        data->deriv_state = FALLING;
+        data->deriv_debounce[STEADY] = 0;
+        data->deriv_debounce[RISING] = 0;
+        data->deriv_debounce[FALLING] = 0;
+      }
+    }
+  }
+  for (i = 0; i < 3; i++){
+    if(data->deriv_debounce[i] < 0)
+      data->deriv_debounce[i] = 0;
+  }
+  if(data->deriv_state != last_state)
+    data->deriv_changed = 1;
+  else
+    data->deriv_changed = 0;
   return data->deriv;
 }
 

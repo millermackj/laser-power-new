@@ -24,7 +24,7 @@ Comments:  Support file for definitions and function prototypes
 #define RTD_0   873L       // RTD raw counts at 0 degrees Celsius
 
 
-#define DERIV_THRESHOLD 3
+#define DERIV_THRESHOLD 7
 #define STEADY 0
 #define RISING 1
 #define FALLING 2
@@ -195,6 +195,7 @@ typedef struct {
   long int cts_at_1kW; // raw counts readout at 1kW centered power
   int deriv_state; // derivative state: steady_cold, rising, steady_hot, falling
   char deriv_changed;
+  int deriv_debounce[3];
 }gradient_data_struct;
 
 
